@@ -25,7 +25,6 @@ def proc_patentes(imagen_de_auto):
     source_img = cv2.imread(f'{imagen_de_auto}')
 
     K_SIZE_GAUSSIAN_BLUR = (1, 19)
-
     # Blur para deshacernos del ruido y mejorar la detección de bordes
     blur = cv2.GaussianBlur(source_img, K_SIZE_GAUSSIAN_BLUR, 0)
 
@@ -38,7 +37,7 @@ def proc_patentes(imagen_de_auto):
     # Convierto Escala de Grises
     img_gray = cv2.cvtColor(tophat_img, cv2.COLOR_BGR2GRAY)
 
-    # Aplico cierre para cerrar agujeros en mis elementos
+    # Aplico clausura para cerrar agujeros en mis elementos
     K_CIERRE = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 3))
     cierre = cv2.morphologyEx(img_gray, cv2.MORPH_CLOSE, K_CIERRE)
     light = cv2.threshold(cierre, 0, 255,cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
@@ -75,7 +74,6 @@ def contar_pixels_negros(img_original, coord_de_patentes):
 
     return region_patente
             
-
     
 def deteccion_de_posibles_patentes(imagen_preproc, img_orginal):
     """Filtrado segun areas de las patentes definidas"""
@@ -136,7 +134,7 @@ patentes = []
 img_patentes = [f'Patentes/img{i:02}.png' for i in range(1, 13)]
     
 
-def main():
+def main(plot=True):
     for img in img_patentes:
 
         # Procesado, Transformacionces y Morfología
@@ -154,12 +152,15 @@ def main():
         patente_img = mostrar_areas_detectadas(img_original, coord_de_pat)
 
         # Muestro todas las etapas del filtrado
-        img_original=cv2.cvtColor(img_original, cv2.COLOR_BGR2RGB)
-        todas_imgs=[img_original, blur, tophat, gris, img_proc, canvas_con_bordes, patente_img]
-        titulos=["Imagen Original", "Original con blurring", "Top Hat sobre blur", "Top Hat en escala de grises", "Top Hat en grises y con cierre", "Bordes", "Patente"]
-        ploteo_de_etapas(todas_imgs, titulos)
-
-#main()
+        if plot: 
+            img_original=cv2.cvtColor(img_original, cv2.COLOR_BGR2RGB)
+            todas_imgs=[img_original, blur, tophat, gris, img_proc, canvas_con_bordes, patente_img]
+            titulos=["Imagen Original", "Original con blurring", "Top Hat sobre blur", "Top Hat en escala de grises", "Top Hat en grises y con cierre", "Bordes", "Patente"]
+            ploteo_de_etapas(todas_imgs, titulos)
+         
+    return patentes
+    
+main()
 
 
 

@@ -1,7 +1,9 @@
 import cv2
 from matplotlib import pyplot as plt
 import numpy as np
-from ejercicio_dos_a import img_patentes, patentes
+from ejercicio_dos_a import main, img_patentes
+
+patentes=main(plot=False)
 
 for i in range(0,len(img_patentes)):
 
@@ -16,7 +18,7 @@ for i in range(0,len(img_patentes)):
     # Convierto a escala de grises
     img_gray_patente = cv2.cvtColor(patente, cv2.COLOR_BGR2GRAY)
 
-    # Binarizo
+    # Umbralizo
     umbralizada = cv2.threshold(img_gray_patente, 0, 255,cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(umbralizada)
