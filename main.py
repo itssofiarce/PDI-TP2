@@ -8,41 +8,48 @@ import cv2
 from matplotlib import pyplot as plt
 import numpy as np
 
-# Cargo imagen 
+# Defininimos función para mostrar imágenes
+def imshow(img, new_fig=True, title=None, color_img=False, blocking=False, colorbar=True, ticks=False):
+    if new_fig:
+        plt.figure()
+    if color_img:
+        plt.imshow(img)
+    else:
+        plt.imshow(img, cmap='gray')
+    plt.title(title)
+    if not ticks:
+        plt.xticks([]), plt.yticks([])
+    if colorbar:
+        plt.colorbar()
+    if new_fig:        
+        plt.show(block=blocking)
 
-posibles_pat={}
-mas_un_pat=[]
-
-#PATENTES = [f'Patentes/img{i:02}.png' for i in range(1, 13)]
-PATENTES = [f'Patentes/img{i:02}.png' for i in range(4, 5)]
 
 def proc_patentes(imagen_de_auto):
     """Tratamiento de la imagen a detectar las patentes"""
 
     source_img = cv2.imread(f'{imagen_de_auto}')
-    #plt.imshow(source_img, cmap='gray'), plt.show()
 
     K_SIZE_GAUSSIAN_BLUR = (1, 19)
 
-    # Blur y detección de bordes
+    # Blur para deshacernos del ruido y mejorar la detección de bordes
     blur = cv2.GaussianBlur(source_img, K_SIZE_GAUSSIAN_BLUR, 0)
-    
+
     # Top hat para resaltar la parte clara de las patentes
-    # El tamaño del kernel corresponde aprox a las dimesiones de una patente aprox
+    # El tamaño del kernel corresponde aprox a las dimesiones de una patente
     filterSize =(17,3) 
     K_TOPHAT = cv2.getStructuringElement(cv2.MORPH_RECT, filterSize) 
-    tophat_img = cv2.morphologyEx(blur.copy(),cv2.MORPH_BLACKHAT,K_TOPHAT)
-    #plt.imshow(tophat_img, cmap='gray'), plt.show() 
+    tophat_img = cv2.morphologyEx(blur.copy(),cv2.MORPH_BLACKHAT,K_TOPHAT) 
 
     # Convierto Escala de Grises
     img_gray = cv2.cvtColor(tophat_img, cv2.COLOR_BGR2GRAY)
-    #plt.imshow(img_gray, cmap='gray'), plt.show() 
 
+    # Aplico cierre para cerrar agujeros en mis elementos
     K_CIERRE = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 3))
     cierre = cv2.morphologyEx(img_gray, cv2.MORPH_CLOSE, K_CIERRE)
     light = cv2.threshold(cierre, 0, 255,cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-    #plt.imshow(light, cmap='gray'), plt.show() 
-    return light
+
+    return blur,tophat_img, img_gray, light
 
 def marcar_bordes(img_preprocesada, img_original):
 
@@ -52,11 +59,9 @@ def marcar_bordes(img_preprocesada, img_original):
     edges = cv2.findContours(img_preprocesada,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)[0]
     canvas = np.zeros_like(img_original)
     cv2.drawContours(canvas,edges, -1, (0,255,0), 2)
+    return canvas
 
-    #return canvas
-    plt.imshow(canvas, cmap='gray'), plt.show()
-
-def contar_pixels_blancos(img_original, coord_de_patentes):
+def contar_pixels_negros(img_original, coord_de_patentes):
 
     img_original = cv2.imread(img_original)
 
@@ -69,10 +74,8 @@ def contar_pixels_blancos(img_original, coord_de_patentes):
         h=recuadro[3]
 
         patente = img_original[y:y+h, x:x+w]
-        #patente_img = cv2.imread(patente, cv2.IMREAD_GRAYSCALE)
-        plt.imshow(patente, cmap='gray'), plt.show()
-        #print(patente_img, patente)
-        number_of_white_pix = np.sum(patente == 255)
+
+        number_of_white_pix = np.sum(patente == 0)
         if number_of_white_pix > max:
             region_patente=recuadro
 
@@ -102,65 +105,67 @@ def deteccion_de_posibles_patentes(imagen_preproc, img_orginal):
         if min_area < area < max_area and 1.739 < ratio < 3.7 and min_ancho < w < max_ancho:  
             posibles_patentes.append([x,y,w,h])
     
-    # Seleccion del recuadro mayor cantidad de blanco
+    # Seleccion del recuadro mayor cantidad de negro, en caso de que se hayan detectado mas de uno
     if len(posibles_patentes) == 1:
-        return posibles_patentes
+        return posibles_patentes[0]
     elif len(posibles_patentes) > 1:
-        posibles_patentes = contar_pixels_blancos(img_orginal, posibles_patentes)
-
-    #elif len(posibles_patentes) == 1:
-        
-    #    x=posibles_patentes[0][0]
-    #    y=posibles_patentes[0][1]
-    #    w=posibles_patentes[0][2]
-    #    h=posibles_patentes[0][3]
-
-    #    img_orginal = cv2.imread(img_orginal)
-    #    patente = img_orginal[y:y+h, x:x+w]
-    #    #patente_img = cv2.imread(patente, cv2.IMREAD_GRAYSCALE)
-    #    plt.imshow(patente, cmap='gray'), plt.show()
+        posibles_patentes = contar_pixels_negros(img_orginal, posibles_patentes)
 
     return posibles_patentes
 
-def mostrar_areas_detectadas(imagen, coordenadas):
-    """Dibujar el rectangulo en la foto original"""
-    for box in coordenadas:
-        x, y, w, h = box
-        cv2.rectangle(imagen, (x, y), (x + w, y + h), (0, 255, 0), 2)
+def mostrar_areas_detectadas(img_original, coordenadas):
+    """Selecciono la parte de la patente en la foto original"""
+    x=coordenadas[0]
+    y=coordenadas[1]
+    w=coordenadas[2]
+    h=coordenadas[3]
 
-    # Display the image with drawn bounding boxes
-    plt.imshow(imagen),plt.show()
+    patente = img_original[y:y+h, x:x+w]
+
+    return patente
+
+def ploteo_de_etapas(lista_de_img, titulos):
+
+    plt.subplot(241), imshow(lista_de_img[0], new_fig=False, colorbar=False, title=titulos[0])
+    plt.subplot(242), imshow(lista_de_img[1], new_fig=False, colorbar=False, title=titulos[1])
+    plt.subplot(243), imshow(lista_de_img[2], new_fig=False, colorbar=False, title=titulos[2])
+    plt.subplot(244), imshow(lista_de_img[3], new_fig=False, colorbar=False, title=titulos[3])
+    plt.subplot(245), imshow(lista_de_img[4], new_fig=False, colorbar=False, title=titulos[4])
+    plt.subplot(246), imshow(lista_de_img[5], new_fig=False, colorbar=False, title=titulos[5])
+    plt.subplot(247), imshow(lista_de_img[6], new_fig=False, colorbar=False, title=titulos[6])
+    plt.show()
+    cv2.waitKey(0)
 
 
 
 def main():
 
     img_patentes = [f'Patentes/img{i:02}.png' for i in range(1, 13)]
-    #img_patentes = [f'Patentes/img{i:02}.png' for i in range(5, 6)]
-    patentes = list()
+    patentes = []
 
     for img in img_patentes:
 
         # Procesado, Transformacionces y Morfología
-        img_proc = proc_patentes(img)      
+        blur, tophat, gris, img_proc = proc_patentes(img)      
 
         # Detección de componentes
-        marcar_bordes(img_proc, img)
+        canvas_con_bordes = marcar_bordes(img_proc, img)
 
         # Lista con posibles patentes
-        #coord_de_pat = deteccion_de_posibles_patentes(img_proc, img)
-        deteccion_de_posibles_patentes(img_proc, img)
+        coord_de_pat = deteccion_de_posibles_patentes(img_proc, img)
+        patentes.append(coord_de_pat)
 
-        # Mostrar Procesado
-        #copiar imshow para mostrar todas juntas o agregar ey llamar desde la primera y segunda funcion
-        #mostrar_areas_detectadas(img,coord_de_pat)
+        # Segmenento de la patente
+        img_original = cv2.imread(img)
+        patente_img = mostrar_areas_detectadas(img_original, coord_de_pat)
 
-    #for pat in patentes:
-    #    plt.figure()
-    #    plt.imshow(
-    #            segmentar_caracteres(pat, box=True),
-    #            cmap='gray')
-    #    plt.show()
+        # Muestro todas las etapas del filtrado
+        img_original=cv2.cvtColor(img_original, cv2.COLOR_BGR2RGB)
+        todas_imgs=[img_original, blur, tophat, gris, img_proc, canvas_con_bordes, patente_img]
+        titulos=["Imagen Original", "Original con blurring", "Top Hat sobre blur", "Top Hat en escala de grises", "Top Hat en grises y con cierre", "Bordes", "Patente"]
+        ploteo_de_etapas(todas_imgs, titulos)
+
+    return patentes
 
 main()
 
