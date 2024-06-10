@@ -1,9 +1,3 @@
-# Imagen escala de grises
-# Detectar bordes
-# Aplicar Morfologia, rellenar 
-# Suavizar
-# Filtar en componentes conectadas
-# Por grupos de 3 o de 6
 import cv2
 from matplotlib import pyplot as plt
 import numpy as np
@@ -85,6 +79,7 @@ def contar_pixels_negros(img_original, coord_de_patentes):
     
 def deteccion_de_posibles_patentes(imagen_preproc, img_orginal):
     """Filtrado segun areas de las patentes definidas"""
+
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(imagen_preproc)
     
     min_ancho = 40
@@ -164,7 +159,7 @@ def main():
         titulos=["Imagen Original", "Original con blurring", "Top Hat sobre blur", "Top Hat en escala de grises", "Top Hat en grises y con cierre", "Bordes", "Patente"]
         ploteo_de_etapas(todas_imgs, titulos)
 
-main()
+#main()
 
 
 
