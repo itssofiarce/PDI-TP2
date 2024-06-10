@@ -137,12 +137,11 @@ def ploteo_de_etapas(lista_de_img, titulos):
     cv2.waitKey(0)
 
 
+patentes = []
+img_patentes = [f'Patentes/img{i:02}.png' for i in range(1, 13)]
+    
 
 def main():
-
-    img_patentes = [f'Patentes/img{i:02}.png' for i in range(1, 13)]
-    patentes = []
-
     for img in img_patentes:
 
         # Procesado, Transformacionces y Morfología
@@ -164,8 +163,6 @@ def main():
         todas_imgs=[img_original, blur, tophat, gris, img_proc, canvas_con_bordes, patente_img]
         titulos=["Imagen Original", "Original con blurring", "Top Hat sobre blur", "Top Hat en escala de grises", "Top Hat en grises y con cierre", "Bordes", "Patente"]
         ploteo_de_etapas(todas_imgs, titulos)
-
-    return patentes
 
 main()
 
