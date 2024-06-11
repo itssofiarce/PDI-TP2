@@ -10,8 +10,8 @@ Activar entorno virtual ejecutando el script:
 *directorio/Scripts/activate*
 
 Instalar paquetes:  
-*pip install numpy
-pip install matplotlib
+*pip install numpy  
+pip install matplotlib  
 pip install opencv-contrib-Python*  
 
 Finalmente, vamos a ‘’ejercicio 1.py’’, ''ejercicio_dos_a.py'', ''ejercicio_dos_b.py'' y ejecutamos las líneas pertinentes de cada ejercicio
